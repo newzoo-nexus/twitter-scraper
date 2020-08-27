@@ -11,26 +11,17 @@ class Profile:
         Attributes:
             - name
             - username
-            - birthday
-            - location
-            - biography
-            - website
-            - profile_photo
-            - banner_photo
             - likes_count
             - tweets_count
             - followers_count
             - following_count
-            - is_verified
-            - is_private
-            - user_id
     """
 
     def __init__(self, username):
         headers = {
             "Accept": "application/json, text/javascript, */*; q=0.01",
             "Referer": f"https://twitter.com/{username}",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062 Safari/537.36",
             "X-Twitter-Active-User": "yes",
             "X-Requested-With": "XMLHttpRequest",
             "Accept-Language": "en-US",
@@ -44,72 +35,43 @@ class Profile:
         try:
             html = HTML(html=page.text, url="bunk", default_encoding="utf-8")
         except KeyError:
-            raise ValueError(
-                f'Oops! Either "{self.username}" does not exist or is private.'
-            )
+            raise ValueError(f'Oops! Either "{self.username}" does not exist or is private.')
         except ParserError:
             pass
-
-        try:
-            self.is_private = html.find(".ProfileHeaderCard-badges .Icon--protected")[0]
-            self.is_private = True
-        except:
-            self.is_private = False
-
-        try:
-            self.is_verified = html.find(".ProfileHeaderCard-badges .Icon--verified")[0]
-            self.is_verified = True
-        except:
-            self.is_verified = False
-
-        self.location = html.find(".ProfileHeaderCard-locationText")[0].text
-        if not self.location:
-            self.location = None
-
-        self.birthday = html.find(".ProfileHeaderCard-birthdateText")[0].text
-        if self.birthday:
-            self.birthday = self.birthday.replace("Born ", "")
-        else:
-            self.birthday = None
-
-        self.profile_photo = html.find(".ProfileAvatar-image")[0].attrs["src"]
-
-        try:
-            self.banner_photo = html.find(".ProfileCanopy-headerBg img")[0].attrs["src"]
-        except KeyError:
-            self.banner_photo = None
 
         page_title = html.find("title")[0].text
         self.name = page_title[: page_title.find("(")].strip()
 
-        self.user_id = html.find(".ProfileNav")[0].attrs["data-user-id"]
-
-        self.biography = html.find(".ProfileHeaderCard-bio")[0].text
-        if not self.birthday:
-            self.birthday = None
-
-        self.website = html.find(".ProfileHeaderCard-urlText")[0].text
-        if not self.website:
-            self.website = None
+        # get stats table if available
+        stats_table = None
+        stats = None
+        try:
+            stats_table = html.find("table.profile-stats")[0]
+            stats = stats_table.find("td div.statnum")
+            if not stats:
+                self.tweets_count = None
+                self.following_count = None
+                self.followers_count = None
+        except:
+            self.tweets_count = None
+            self.following_count = None
+            self.followers_count = None
 
         # get total tweets count if available
         try:
-            q = html.find('li[class*="--tweets"] span[data-count]')[0].attrs["data-count"]
-            self.tweets_count = int(q)
+            self.tweets_count = int(stats[0].text.replace(",", ""))
         except:
             self.tweets_count = None
 
         # get total following count if available
         try:
-            q = html.find('li[class*="--following"] span[data-count]')[0].attrs["data-count"]
-            self.following_count = int(q)
+            self.following_count = int(stats[1].text.replace(",", ""))
         except:
             self.following_count = None
 
         # get total follower count if available
         try:
-            q = html.find('li[class*="--followers"] span[data-count]')[0].attrs["data-count"]
-            self.followers_count = int(q)
+            self.followers_count = int(stats[2].text.replace(",", ""))
         except:
             self.followers_count = None
 
@@ -124,38 +86,20 @@ class Profile:
         return dict(
             name=self.name,
             username=self.username,
-            birthday=self.birthday,
-            biography=self.biography,
-            location=self.location,
-            website=self.website,
-            profile_photo=self.profile_photo,
-            banner_photo=self.banner_photo,
             likes_count=self.likes_count,
             tweets_count=self.tweets_count,
             followers_count=self.followers_count,
             following_count=self.following_count,
-            is_verified=self.is_verified,
-            is_private=self.is_private,
-            user_id=self.user_id
         )
 
     def __dir__(self):
         return [
             "name",
             "username",
-            "birthday",
-            "location",
-            "biography",
-            "website",
-            "profile_photo",
-            'banner_photo'
             "likes_count",
             "tweets_count",
             "followers_count",
             "following_count",
-            "is_verified",
-            "is_private",
-            "user_id"
         ]
 
     def __repr__(self):
